@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bugloos — Team Retro Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --teal:   #3ABFCC;
+    --purple: #7C6EB0;
+    --dark:   #0d0b1e;
+    --glass-bg:     rgba(255,255,255,0.06);
+    --glass-border: rgba(255,255,255,0.14);
+    --glass-shine:  rgba(255,255,255,0.10);
+    --text:   #fff;
+    --muted:  rgba(255,255,255,0.85);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Jost', sans-serif;
+    min-height: 100vh;
+    background: radial-gradient(ellipse at 20% 10%, #1a1050 0%, #0d0b1e 50%, #071a2e 100%);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* ── Ambient blobs ── */
+  .scene {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  }
+  .blob {
+    position: absolute; border-radius: 50%;
+    filter: blur(90px); opacity: 0.25;
+    animation: drift 12s ease-in-out infinite alternate;
+  }
+  .b1 { width:600px; height:600px; background:#7C6EB0; top:-150px; left:-150px; animation-delay:0s; }
+  .b2 { width:500px; height:500px; background:#3ABFCC; bottom:-100px; right:-100px; animation-delay:-5s; }
+  .b3 { width:300px; height:300px; background:#241E46; top:40%; left:45%; animation-delay:-9s; }
+  .b4 { width:200px; height:200px; background:#3ABFCC; top:20%; right:10%; animation-delay:-3s; opacity:0.15; }
+
+  @keyframes drift {
+    from { transform: translate(0,0) scale(1); }
+    to   { transform: translate(40px,30px) scale(1.12); }
+  }
+
+  /* ── Layout ── */
+  .wrap { position: relative; z-index: 1; max-width: 1160px; margin: 0 auto; padding: 0 24px 60px; }
+
+  /* ── Navbar ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    background: rgba(13,11,30,0.6);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 0 32px;
+  }
+  .nav-inner {
+    max-width: 1160px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px;
+  }
+  .nav-logo img { height: 32px; display: block; }
+  .nav-badge {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); background: var(--glass-bg);
+    border: 1px solid var(--glass-border); border-radius: 99px;
+    padding: 5px 14px;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    padding: 56px 0 40px;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
+    flex-wrap: wrap;
+  }
+  .hero-title { font-size: 36px; font-weight: 700; line-height: 1.15; }
+  .hero-title span {
+    background: linear-gradient(120deg, #fff 0%, #C5BEE8 50%, var(--teal) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .hero-sub { margin-top: 6px; font-size: 14px; color: var(--muted); font-weight: 500; }
+
+  .stat-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .stat-chip {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 14px 22px; text-align: center;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25), 0 1px 0 var(--glass-shine) inset;
+    position: relative; overflow: hidden;
+  }
+  .stat-chip::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background: linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);
+  }
+  .stat-chip .n { font-size: 28px; font-weight: 700; color: var(--teal); display: block; }
+  .stat-chip .l { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+  /* ── Top voted ── */
+  .top-strip {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 18px 24px; margin-bottom: 28px;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 1px 0 var(--glass-shine) inset;
+  }
+  .top-strip h3 {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--teal); margin-bottom: 12px;
+  }
+  .top-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .top-badge {
+    font-size: 12px; font-weight: 600;
+    padding: 5px 14px; border-radius: 99px;
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px);
+  }
+  .top-badge.p { background: rgba(36,30,70,0.6);  color: #C5BEE8; }
+  .top-badge.s { background: rgba(124,110,176,0.3); color: #ddd8f7; }
+  .top-badge.c { background: rgba(58,191,204,0.2);  color: #aaedf3; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  .tab {
+    font-family: 'Jost', sans-serif;
+    font-size: 13px; font-weight: 700;
+    padding: 9px 22px; border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--muted); cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.2s;
+  }
+  .tab:hover { color: #fff; border-color: rgba(255,255,255,0.25); }
+  .tab.ap { background: rgba(36,30,70,0.7);  border-color: #7C6EB066; color: #fff; box-shadow: 0 0 20px rgba(124,110,176,0.3); }
+  .tab.as { background: rgba(124,110,176,0.35); border-color: #7C6EB099; color: #fff; box-shadow: 0 0 20px rgba(124,110,176,0.25); }
+  .tab.ac { background: rgba(58,191,204,0.25);  border-color: #3ABFCC66; color: #fff; box-shadow: 0 0 20px rgba(58,191,204,0.2); }
+
+  /* ── Section ── */
+  .section { display: none; }
+  .section.vis { display: block; }
+
+  .sec-header {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: 14px; padding: 14px 20px; margin-bottom: 14px;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25), 0 1px 0 var(--glass-shine) inset;
+  }
+  .sec-header h2 { font-size: 15px; font-weight: 700; }
+  .sec-header .meta { font-size: 12px; color: var(--muted); }
+  .sec-header .total { font-size: 22px; font-weight: 700; }
+
+  /* ── Item cards ── */
+  .item-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .item {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 14px 18px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative; overflow: hidden;
+  }
+  .item::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background: linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent);
+  }
+  .item:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.35); }
+
+  .item-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .item-name { font-size: 13px; font-weight: 600; flex: 1; }
+  .item-pct  { font-size: 12px; font-weight: 700; white-space: nowrap; }
+
+  .bar-track { height: 6px; border-radius: 99px; background: rgba(255,255,255,0.07); }
+  .bar-fill  { height: 6px; border-radius: 99px; }
+  .bar-p { background: linear-gradient(90deg,#7C6EB0,#5d5091); }
+  .bar-s { background: linear-gradient(90deg,#9b8fd4,#7C6EB0); }
+  .bar-c { background: linear-gradient(90deg,#3ABFCC,#297383); }
+
+  .item-voters { font-size: 10px; color: var(--muted); margin-top: 6px; }
+
+  /* ── Voter grid ── */
+  .voter-section { margin-top: 36px; }
+  .voter-section h2 { font-size: 15px; font-weight: 700; margin-bottom: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; font-size: 11px; }
+  .voter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px,1fr)); gap: 10px; }
+
+  .voter-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    border-top: 2px solid rgba(124,110,176,0.5);
+    position: relative; overflow: hidden;
+  }
+  .voter-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background: linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
+  }
+  .voter-name  { font-size: 13px; font-weight: 700; }
+  .voter-total { font-size: 11px; color: var(--teal); font-weight: 600; margin-top: 3px; }
+  .voter-breakdown { font-size: 10px; color: var(--muted); margin-top: 8px; line-height: 1.8; }
+
+  /* ── Particles ── */
+  .particle {
+    position: fixed; border-radius: 50%;
+    background: rgba(255,255,255,0.5);
+    animation: rise linear infinite; pointer-events: none; z-index: 0;
+  }
+  @keyframes rise {
+    from { transform: translateY(0) scale(1); opacity: 0.4; }
+    to   { transform: translateY(-100vh) scale(0); opacity: 0; }
+  }
+
+  /* ── Divider ── */
+  .divider { height:1px; background: linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent); margin: 32px 0; }
+
+  /* ── Hub Ideas tab ── */
+  .tab.ai { background: rgba(58,191,150,0.25); border-color: rgba(58,191,150,0.5); color: #fff; box-shadow: 0 0 20px rgba(58,191,150,0.2); }
+
+  .ideas-filter { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
+  .filter-btn {
+    font-family:'Jost',sans-serif; font-size:11px; font-weight:700;
+    padding:5px 14px; border-radius:99px; border:1px solid var(--glass-border);
+    background:var(--glass-bg); color:var(--muted); cursor:pointer;
+    backdrop-filter:blur(8px); transition:all 0.18s; letter-spacing:0.04em;
+  }
+  .filter-btn:hover, .filter-btn.active { color:#fff; border-color:rgba(255,255,255,0.3); background:rgba(255,255,255,0.1); }
+
+  .ideas-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:14px; }
+
+  .idea-card {
+    background:var(--glass-bg); border:1px solid var(--glass-border);
+    border-radius:16px; padding:20px 22px;
+    backdrop-filter:blur(14px);
+    box-shadow:0 4px 20px rgba(0,0,0,0.25), 0 1px 0 var(--glass-shine) inset;
+    position:relative; overflow:hidden;
+    transition:transform 0.18s, box-shadow 0.18s;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .idea-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.22),transparent);
+  }
+  .idea-card:hover { transform:translateY(-3px); box-shadow:0 8px 32px rgba(0,0,0,0.4); }
+
+  .idea-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .idea-title { font-size:14px; font-weight:700; line-height:1.3; flex:1; }
+  .idea-tag {
+    font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em;
+    padding:3px 10px; border-radius:99px; white-space:nowrap; flex-shrink:0;
+  }
+  .tag-ai      { background:rgba(58,191,204,0.2);  color:#7ee8f0; border:1px solid rgba(58,191,204,0.3); }
+  .tag-team    { background:rgba(124,110,176,0.25); color:#c5b8f7; border:1px solid rgba(124,110,176,0.35); }
+  .tag-product { background:rgba(255,180,100,0.15); color:#f7d090; border:1px solid rgba(255,180,100,0.25); }
+  .tag-process { background:rgba(200,200,200,0.1);  color:#ccc;    border:1px solid rgba(255,255,255,0.15); }
+
+  .idea-proposer { font-size:11px; font-weight:600; color:var(--teal); }
+
+  .idea-section { display:flex; flex-direction:column; gap:3px; }
+  .idea-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); }
+  .idea-text  { font-size:12px; color:#fff; line-height:1.55; }
+
+  .idea-divider { height:1px; background:rgba(255,255,255,0.06); }
+
+  /* ── Problem → Solution Map tab ── */
+  .tab.am { background: rgba(255,160,80,0.22); border-color: rgba(255,160,80,0.45); color: #fff; box-shadow: 0 0 20px rgba(255,160,80,0.18); }
+
+  .map-grid { display: flex; flex-direction: column; gap: 18px; }
+
+  .map-row {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    overflow: hidden;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25), 0 1px 0 var(--glass-shine) inset;
+  }
+
+  .map-problem {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 16px 22px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    background: rgba(124,110,176,0.18);
+  }
+  .map-problem-left { display: flex; align-items: center; gap: 12px; }
+  .map-problem-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(124,110,176,0.35);
+    border: 1px solid rgba(124,110,176,0.5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0;
+  }
+  .map-problem-name { font-size: 14px; font-weight: 700; }
+  .map-problem-votes {
+    font-size: 11px; font-weight: 700;
+    padding: 3px 10px; border-radius: 99px;
+    background: rgba(124,110,176,0.3);
+    border: 1px solid rgba(124,110,176,0.4);
+    color: #c5b8f7; white-space: nowrap;
+  }
+
+  .map-solutions { padding: 14px 22px; display: flex; flex-direction: column; gap: 10px; }
+  .map-solution {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 14px; border-radius: 12px;
+    background: rgba(58,191,204,0.08);
+    border: 1px solid rgba(58,191,204,0.18);
+    transition: background 0.15s;
+  }
+  .map-solution:hover { background: rgba(58,191,204,0.14); }
+  .map-arrow { color: #3ABFCC; font-size: 13px; margin-top: 1px; flex-shrink: 0; }
+  .map-solution-body { flex: 1; }
+  .map-solution-name { font-size: 13px; font-weight: 600; }
+  .map-solution-why { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px; line-height: 1.5; }
+  .map-solution-votes {
+    font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
+    background: rgba(58,191,204,0.15); border: 1px solid rgba(58,191,204,0.25);
+    color: #7ee8f0; white-space: nowrap; flex-shrink: 0; margin-top: 2px;
+  }
+
+  /* ── Responsive: Tablet (≤900px) ── */
+  @media (max-width: 900px) {
+    .hero { padding: 40px 0 28px; gap: 20px; }
+    .hero-title { font-size: 28px; }
+    .ideas-grid { grid-template-columns: 1fr; }
+    .voter-grid { grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); }
+  }
+
+  /* ── Responsive: Mobile (≤640px) ── */
+  @media (max-width: 640px) {
+    nav { padding: 0 16px; }
+    .nav-inner { height: 56px; }
+    .nav-logo img { height: 26px; }
+    .nav-badge { display: none; }
+
+    .wrap { padding: 0 14px 48px; }
+
+    .hero { padding: 28px 0 20px; flex-direction: column; align-items: flex-start; gap: 20px; }
+    .hero-title { font-size: 24px; }
+    .hero-sub { font-size: 13px; }
+
+    .stat-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; width: 100%; }
+    .stat-chip { padding: 10px 8px; }
+    .stat-chip .n { font-size: 22px; }
+    .stat-chip .l { font-size: 9px; }
+
+    .top-strip { padding: 14px 16px; }
+    .top-badge { font-size: 11px; padding: 4px 10px; }
+
+    /* Tabs: horizontal scroll, no wrapping */
+    .tabs {
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: 4px;
+      gap: 6px;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      font-size: 12px;
+      padding: 8px 14px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .sec-header { padding: 12px 14px; }
+    .sec-header .total { font-size: 18px; }
+
+    .item { padding: 12px 14px; }
+    .item-name { font-size: 12px; }
+    .item-pct  { font-size: 11px; }
+    .item-voters { font-size: 10px; }
+
+    .ideas-filter { gap: 6px; }
+    .filter-btn { font-size: 10px; padding: 4px 10px; }
+
+    .idea-card { padding: 16px; }
+    .idea-title { font-size: 13px; }
+
+    .voter-grid { grid-template-columns: repeat(2,1fr); gap: 8px; }
+    .voter-card { padding: 12px; }
+
+    /* Shrink blobs on mobile for performance */
+    .b1 { width:300px; height:300px; }
+    .b2 { width:250px; height:250px; }
+    .b3 { display:none; }
+    .b4 { display:none; }
+  }
+
+  /* ── Responsive: Small mobile (≤380px) ── */
+  @media (max-width: 380px) {
+    .hero-title { font-size: 20px; }
+    .stat-chip .n { font-size: 18px; }
+    .voter-grid { grid-template-columns: 1fr; }
+    .top-badges { gap: 6px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Scene -->
+<div class="scene">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+  <div class="blob b4"></div>
+</div>
+
+<!-- Navbar -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <img src="./Bugloos-Logo-Negative.png" alt="Bugloos">
+    </div>
+    <span class="nav-badge">Team Retro · June 2026</span>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div>
+      <div class="hero-title"><span>Hub Retrospective</span><br>Vote Dashboard</div>
+      <div class="hero-sub">June 2026 · All pages combined</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-chip"><span class="n">132</span><span class="l">Total Votes</span></div>
+      <div class="stat-chip"><span class="n">16</span><span class="l">Voters</span></div>
+      <div class="stat-chip"><span class="n">63</span><span class="l">Unique Items</span></div>
+    </div>
+  </div>
+
+  <!-- Top voted strip -->
+  <div class="top-strip">
+    <h3>🔥 Most Voted Items</h3>
+    <div class="top-badges">
+      <span class="top-badge p">Flawed Hub Enabling Model (5)</span>
+      <span class="top-badge s">Edge Tech Lab &amp; Funding (5)</span>
+      <span class="top-badge s">Define Strategic AI Architect Roles (5)</span>
+      <span class="top-badge s">Full Stack Growth Tracks (5)</span>
+      <span class="top-badge s">Separate Core Responsibilities (5)</span>
+      <span class="top-badge c">Automated Prototyping AI Workflows (6)</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab ap" onclick="switchTab('problems',this,'ap')">🔴 Problems <span style="opacity:.6">(46)</span></button>
+    <button class="tab"   onclick="switchTab('suggestions',this,'as')">🟣 Suggestions <span style="opacity:.6">(46)</span></button>
+    <button class="tab"   onclick="switchTab('culture',this,'ac')">🔵 Culture &amp; Strengths <span style="opacity:.6">(40)</span></button>
+    <button class="tab"   onclick="switchTab('ideas',this,'ai')">💡 Hub Ideas <span style="opacity:.6">(13)</span></button>
+    <button class="tab"   onclick="switchTab('map',this,'am')">🔗 Challenge / Solution</button>
+  </div>
+
+  <!-- Problems -->
+  <div id="sec-problems" class="section vis">
+    <div class="sec-header">
+      <div><div style="font-size:15px;font-weight:700">Problems</div><div class="meta">24 items · 46 votes</div></div>
+      <div class="total" style="color:#9b8fd4">46</div>
+    </div>
+    <div class="item-list" id="list-problems"></div>
+  </div>
+
+  <!-- Suggestions -->
+  <div id="sec-suggestions" class="section">
+    <div class="sec-header">
+      <div><div style="font-size:15px;font-weight:700">Suggestions</div><div class="meta">16 items · 46 votes</div></div>
+      <div class="total" style="color:#9b8fd4">46</div>
+    </div>
+    <div class="item-list" id="list-suggestions"></div>
+  </div>
+
+  <!-- Culture -->
+  <div id="sec-culture" class="section">
+    <div class="sec-header">
+      <div><div style="font-size:15px;font-weight:700">Culture &amp; Strengths</div><div class="meta">23 items · 40 votes</div></div>
+      <div class="total" style="color:var(--teal)">40</div>
+    </div>
+    <div class="item-list" id="list-culture"></div>
+  </div>
+
+  <!-- Hub Ideas -->
+  <div id="sec-ideas" class="section">
+    <div class="sec-header">
+      <div><div style="font-size:15px;font-weight:700">Hub Ideas</div><div class="meta">13 proposals · no voting</div></div>
+      <div class="total" style="color:#5ee8b0">13</div>
+    </div>
+    <div class="ideas-filter">
+      <button class="filter-btn active" onclick="filterIdeas('all',this)">All (13)</button>
+      <button class="filter-btn" onclick="filterIdeas('ai',this)">🤖 AI &amp; Tools (6)</button>
+      <button class="filter-btn" onclick="filterIdeas('team',this)">👥 Team Structure (5)</button>
+      <button class="filter-btn" onclick="filterIdeas('product',this)">📦 Product (1)</button>
+      <button class="filter-btn" onclick="filterIdeas('process',this)">⚙️ Process (1)</button>
+    </div>
+    <div class="ideas-grid" id="ideas-grid"></div>
+  </div>
+
+  <!-- Problem → Solution Map -->
+  <div id="sec-map" class="section">
+    <div class="sec-header">
+      <div><div style="font-size:15px;font-weight:700">Challenge / Solution</div><div class="meta">Top 3 challenges mapped to Hub Ideas proposed by team members</div></div>
+    </div>
+    <div class="map-grid" id="map-grid"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Voter grid -->
+  <div class="voter-section">
+    <h2>Participation by Voter</h2>
+    <div class="voter-grid" id="voter-grid"></div>
+  </div>
+
+</div>
+
+<script>
+const problems = [
+  { name:"Flawed Hub Enabling Model",      v:5, pct:"10.9", voters:"Hootan · Mohammad Salehe · Taha · Parya · Fatemeh" },
+  { name:"Fuzzy Tech Lead Accountability", v:4, pct:"8.7",  voters:"Taha · Amin Mohabbat · Mostafa Shaban · Alireza E" },
+  { name:"No Career Path Clarity",         v:4, pct:"8.7",  voters:"Saeed Yavarnia · Komeyl · Fatemeh · Alireza E" },
+  { name:"Lack of AI Development",         v:3, pct:"6.5",  voters:"Alireza.b · Amin Mohabbat · Mostafa Shaban" },
+  { name:"Low AI Tooling Adaptation",      v:3, pct:"6.5",  voters:"Amin Mohabbat · Fatemeh · Hootan" },
+  { name:"Mismatched Priorities",          v:3, pct:"6.5",  voters:"Mohaddeseh · Mohammad Salehe · Ashkan" },
+  { name:"Fear of Ownership",              v:2, pct:"4.3",  voters:"Vahid · Nayyer" },
+  { name:"Overwhelming OKR Frameworks",    v:2, pct:"4.3",  voters:"Alireza.b · Taha" },
+  { name:"Fuzzy Hub Structures",           v:2, pct:"4.3",  voters:"Mohaddeseh · Nayyer" },
+  { name:"Slow Dev Process Loop",          v:2, pct:"4.3",  voters:"Hootan · Parya" },
+  { name:"Rigid Clock-In Rules",           v:2, pct:"4.3",  voters:"Komeyl · Ashkan" },
+  { name:"Deployment Pipeline Blocks",     v:2, pct:"4.3",  voters:"Vahid · Saeed Yavarnia" },
+  { name:"No Dedicated Refactor Time",     v:1, pct:"2.2",  voters:"Mostafa Shaban" },
+  { name:"Pending Dev Decisions",          v:1, pct:"2.2",  voters:"Ashkan" },
+  { name:"Unstable Hub Processes",         v:1, pct:"2.2",  voters:"Mohammad Salehe" },
+  { name:"Cross-Team Isolation",           v:1, pct:"2.2",  voters:"Maz" },
+  { name:"DevOps Build Bottlenecks",       v:1, pct:"2.2",  voters:"Saeed Yavarnia" },
+  { name:"Departmental Self-Interest",     v:1, pct:"2.2",  voters:"Nayyer" },
+  { name:"Messy Git Branch Management",    v:1, pct:"2.2",  voters:"Mohaddeseh" },
+  { name:"No Expertise Grading Matrices",  v:1, pct:"2.2",  voters:"Komeyl" },
+  { name:"Poor Project AI Documentation",  v:1, pct:"2.2",  voters:"Alireza.b" },
+  { name:"Strategic Planning Deficits",    v:1, pct:"2.2",  voters:"Parya" },
+  { name:"Imbalanced Resource Slacking",   v:1, pct:"2.2",  voters:"Vahid" },
+  { name:"No Financial Return Clarity",    v:1, pct:"2.2",  voters:"Alireza E" },
+];
+
+const suggestions = [
+  { name:"Edge Tech Lab & Funding",             v:5, pct:"10.9", voters:"Amin Mohabbat · Ashkan · Komeyl · Alireza.b · Alireza E" },
+  { name:"Define Strategic AI Architect Roles", v:5, pct:"10.9", voters:"Nayyer · Komeyl · Mostafa Shaban ×2 · Alireza E" },
+  { name:"Full Stack Growth Tracks",            v:5, pct:"10.9", voters:"Ashkan · Saeed Yavarnia · Mostafa Shaban ×2 · Vahid" },
+  { name:"Separate Core Responsibilities",      v:5, pct:"10.9", voters:"Mohammad Salehe · Mostafa Shaban ×2 · Vahid · Fatemeh" },
+  { name:"Clear Corporate Roadmap",             v:4, pct:"8.7",  voters:"Taha · Nayyer · Mohaddeseh · Vahid" },
+  { name:"Continuous Edge Tech Sharing",        v:4, pct:"8.7",  voters:"Nayyer · Saeed Yavarnia · Hootan · Alireza.b" },
+  { name:"Flexible Hours Commitments",          v:4, pct:"8.7",  voters:"Hootan · Alireza.b · Parya · Fatemeh" },
+  { name:"Tool Showcases & Examples",           v:3, pct:"6.5",  voters:"Komeyl · Hootan · Fatemeh" },
+  { name:"Flexible Framework Adaptability",     v:2, pct:"4.3",  voters:"Taha · Amin Mohabbat" },
+  { name:"Volunteer Driven Problem Solving",    v:2, pct:"4.3",  voters:"Amin Mohabbat · Parya" },
+  { name:"SSH Server PAM Access",               v:2, pct:"4.3",  voters:"Mohammad Salehe · Saeed Yavarnia" },
+  { name:"Hub & Stack Retrospectives",          v:1, pct:"2.2",  voters:"Mohaddeseh" },
+  { name:"Weekly Hub Product Meetings",         v:1, pct:"2.2",  voters:"Ashkan" },
+  { name:"Clarify Agreed Items",                v:1, pct:"2.2",  voters:"Mohammad Salehe" },
+  { name:"Sandboxed Tech Experiments",          v:1, pct:"2.2",  voters:"Parya" },
+  { name:"Modular Dynamic Team Configurations", v:1, pct:"2.2",  voters:"Alireza E" },
+];
+
+const culture = [
+  { name:"Automated Prototyping AI Workflows",        v:6, pct:"15.0", voters:"Amin Mohabbat · Mostafa Shaban ×2 · Mohaddeseh · Fatemeh · Alireza E" },
+  { name:"Fresh Ideas Welcoming Posture",              v:4, pct:"10.0", voters:"Taha · Mostafa Shaban ×2 · Alireza.b" },
+  { name:"Solution-Focused Hub Ownership",            v:4, pct:"10.0", voters:"Mostafa Shaban ×2 · Hootan · Alireza E" },
+  { name:"Organizational Support For Tech Explorations",v:4,pct:"10.0",voters:"Ashkan · Alireza.b · Vahid · Alireza E" },
+  { name:"Constructive Dialogue & Open Spaces",       v:2, pct:"5.0",  voters:"Mohaddeseh · Parya" },
+  { name:"Omnidirectional Feedback Mindset",          v:2, pct:"5.0",  voters:"Hootan · Fatemeh" },
+  { name:"Constructive Player Support Matrix",        v:2, pct:"5.0",  voters:"Alireza.b · Fatemeh" },
+  { name:"Micro Precision Project Quality",           v:1, pct:"2.5",  voters:"Nayyer" },
+  { name:"BD Pipeline & Client Acquisition",          v:1, pct:"2.5",  voters:"Nayyer" },
+  { name:"Vibrant Workplace Environment",             v:1, pct:"2.5",  voters:"Nayyer" },
+  { name:"Unmapped Metric Review Nodes",              v:1, pct:"2.5",  voters:"Mohammad Salehe" },
+  { name:"Localized Small Sandbox Assays",            v:1, pct:"2.5",  voters:"Mohammad Salehe" },
+  { name:"Cross-Department Communication Flow",       v:1, pct:"2.5",  voters:"Mohammad Salehe" },
+  { name:"Willingness To Optimize Systems",           v:1, pct:"2.5",  voters:"Ashkan" },
+  { name:"Inter-PM Shared Developer Balancing",       v:1, pct:"2.5",  voters:"Ashkan" },
+  { name:"Universal Standard Communication Layouts",  v:1, pct:"2.5",  voters:"Komeyl" },
+  { name:"Excellent Team Vibe Core",                  v:1, pct:"2.5",  voters:"Komeyl" },
+  { name:"Accelerated Internal Purchase Pathways",    v:1, pct:"2.5",  voters:"Komeyl" },
+  { name:"Team Vibe",                                 v:1, pct:"2.5",  voters:"Hootan" },
+  { name:"Project Quality Oversight Guardians",       v:1, pct:"2.5",  voters:"Vahid" },
+  { name:"Enterprise OKR Frameworks",                 v:1, pct:"2.5",  voters:"Vahid" },
+  { name:"Robust Enterprise OKR Frameworks",          v:1, pct:"2.5",  voters:"Parya" },
+  { name:"Commitment-Driven Flexible Timelines",      v:1, pct:"2.5",  voters:"Taha" },
+];
+
+const voters = {
+  "Taha":            {p:2,s:2,c:2},
+  "Amin Mohabbat":   {p:3,s:3,c:1},
+  "Nayyer":          {p:3,s:3,c:3},
+  "Mohammad Salehe": {p:3,s:3,c:3},
+  "Ashkan":          {p:3,s:3,c:3},
+  "Saeed Yavarnia":  {p:3,s:3,c:0},
+  "Mohaddeseh":      {p:3,s:2,c:2},
+  "Komeyl":          {p:3,s:3,c:3},
+  "Hootan":          {p:3,s:3,c:3},
+  "Alireza.b":       {p:3,s:3,c:3},
+  "Mostafa Shaban":  {p:3,s:6,c:6},
+  "Parya":           {p:3,s:3,c:2},
+  "Vahid":           {p:3,s:3,c:3},
+  "Fatemeh":         {p:3,s:3,c:3},
+  "Alireza E":       {p:3,s:3,c:3},
+  "Maz":             {p:1,s:0,c:0},
+};
+
+const problemMap = [
+  {
+    problem: "Flawed Hub Enabling Model", votes: 5, icon: "🏗️",
+    raisedBy: "Hootan · Mohammad Salehe · Taha · Parya · Fatemeh",
+    solutions: [
+      { title: "Spotify Model Inside the Hub",             proposer: "Taha Safari",      why: "Introduces clear ownership and shared accountability — directly restructures how the hub enables teams." },
+      { title: "Small Team Circles Inside the Hub",        proposer: "Mostafa Shaban",   why: "Autonomous circles with their own strategy fix the unclear enabling model by making leadership explicit." },
+      { title: "Dedicated Product Group",                  proposer: "Taha Safari",      why: "A product team bridging business and tech gives the hub a clear enabling anchor with visible priorities." },
+      { title: "Project Prioritization & Developer Capacity Planning", proposer: "Nayyer", why: "Structured prioritisation removes the ambiguity that makes the current enabling model feel broken." },
+    ]
+  },
+  {
+    problem: "Fuzzy Tech Lead Accountability", votes: 4, icon: "🎯",
+    raisedBy: "Taha · Amin Mohabbat · Mostafa Shaban · Alireza E",
+    solutions: [
+      { title: "Spotify Model Inside the Hub",             proposer: "Taha Safari",      why: "RACI model paired with team autonomy makes accountability explicit and visible for every tech lead." },
+      { title: "Small Team Circles Inside the Hub",        proposer: "Mostafa Shaban",   why: "Circle structure adds autonomy and direct accountability — each circle has a clear owner." },
+      { title: "AI-Driven Product Development Flow Team",  proposer: "Nayyer",           why: "A dedicated team with defined roles removes ambiguity about who owns technical direction." },
+      { title: "Project Prioritization & Developer Capacity Planning", proposer: "Nayyer", why: "Mapping tasks to clear owners and capacities directly resolves accountability gaps." },
+    ]
+  },
+  {
+    problem: "No Career Path Clarity", votes: 4, icon: "📈",
+    raisedBy: "Saeed Yavarnia · Komeyl · Fatemeh · Alireza E",
+    solutions: [
+      { title: "All Developers Become Full-Stack",         proposer: "Vahid Sarhhadi",   why: "Growing full-stack capability gives every developer a clear, tangible growth direction." },
+      { title: "Spotify Model Inside the Hub",             proposer: "Taha Safari",      why: "Teams aligned around specialisations with autonomy create visible career tracks within the hub." },
+      { title: "AI-Driven Product Development Flow Team",  proposer: "Nayyer",           why: "A dedicated AI team opens a concrete senior technical path for developers to grow into." },
+      { title: "Weekly Knowledge Sharing Mechanism",       proposer: "Ashkan",           why: "Regular skill sharing accelerates growth and makes individual progress visible to the team." },
+    ]
+  },
+];
+
+document.getElementById('map-grid').innerHTML = problemMap.map(row => `
+  <div class="map-row">
+    <div class="map-problem">
+      <div class="map-problem-left">
+        <div class="map-problem-icon">${row.icon}</div>
+        <div>
+          <div class="map-problem-name">${row.problem}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.6);margin-top:3px;">Raised by: ${row.raisedBy}</div>
+        </div>
+      </div>
+      <div class="map-problem-votes">${row.votes} votes</div>
+    </div>
+    <div class="map-solutions">
+      ${row.solutions.map(s => `
+        <div class="map-solution">
+          <div class="map-arrow">→</div>
+          <div class="map-solution-body">
+            <div class="map-solution-name">${s.title}</div>
+            <div class="map-solution-why">${s.why}</div>
+            <div style="font-size:10px;color:rgba(58,191,204,0.8);margin-top:4px;">💬 Proposed by ${s.proposer}</div>
+          </div>
+        </div>`).join('')}
+    </div>
+  </div>`).join('');
+
+function makeItem(d, cls) {
+  return `<div class="item">
+    <div class="item-row">
+      <span class="item-name">${d.name}</span>
+      <span class="item-pct" style="color:${cls==='bar-p'?'#b0a6e0':cls==='bar-s'?'#b0a6e0':'#3ABFCC'}">${d.v} vote${d.v!==1?'s':''} · ${d.pct}%</span>
+    </div>
+    <div class="bar-track"><div class="${cls}" style="width:${d.pct}%; height:6px; border-radius:99px;"></div></div>
+    <div class="item-voters">👤 ${d.voters}</div>
+  </div>`;
+}
+
+document.getElementById('list-problems').innerHTML    = problems.map(d=>makeItem(d,'bar-p')).join('');
+document.getElementById('list-suggestions').innerHTML = suggestions.map(d=>makeItem(d,'bar-s')).join('');
+document.getElementById('list-culture').innerHTML     = culture.map(d=>makeItem(d,'bar-c')).join('');
+
+document.getElementById('voter-grid').innerHTML = Object.entries(voters).map(([n,d])=>`
+  <div class="voter-card">
+    <div class="voter-name">${n}</div>
+    <div class="voter-total">${d.p+d.s+d.c} votes</div>
+    <div class="voter-breakdown">
+      🔴 ${d.p} problem${d.p!==1?'s':''}<br>
+      🟣 ${d.s} suggestion${d.s!==1?'s':''}<br>
+      🔵 ${d.c} strength${d.c!==1?'s':''}
+    </div>
+  </div>`).join('');
+
+const hubIdeas = [
+  {
+    proposer:"Ashkan", tag:"ai", tagLabel:"AI & Tools",
+    title:"Weekly Knowledge Sharing Mechanism",
+    idea:"Centralized knowledge base and sharing routine for weekly learnings — especially around AI tools like Claude. Highlights new tools, troubleshooting experiences, and weekly insights so the whole team benefits collectively.",
+    contribution:"Set up the initial platform/template, share own learnings weekly, and summarize submissions for the first month.",
+    problem:"Individual knowledge stays siloed. Without formal sharing, teams risk duplicated efforts, lost productivity, and missed collective growth."
+  },
+  {
+    proposer:"Fatemeh", tag:"ai", tagLabel:"AI & Tools",
+    title:"Brain AI / Team AI Exploration",
+    idea:"Exploring AI tools in teams (e.g. with Hootan) as a good fit for our company's products and projects to help save time.",
+    contribution:"Test the product and evaluate how usable the results are.",
+    problem:"Repetitive work across projects."
+  },
+  {
+    proposer:"Taha Safari", tag:"process", tagLabel:"Process",
+    title:"Extra Day for Retro / Heavy Week Relief",
+    idea:"Given heavy workloads, move this kind of activity to Thursdays to give the team more breathing room and time to reflect properly.",
+    contribution:"Nothing specific — just the suggestion itself.",
+    problem:"Over-tiring effect spilling into the following week."
+  },
+  {
+    proposer:"Mostafa Shaban", tag:"ai", tagLabel:"AI & Tools",
+    title:"Install Claude on All Projects",
+    idea:"Onboard all developers on using Claude inside codebases. Urbansofa Front example: 2.82h logged, 7h billed — huge speed impact. Applicable to triage, bug fixes, discovery, features, and technical debt.",
+    contribution:"Gather non-technical project documents to include in Claude's knowledge base.",
+    problem:"High estimations, always-MVP work, hidden technical dependencies and edge cases in code."
+  },
+  {
+    proposer:"Mostafa Shaban", tag:"team", tagLabel:"Team Structure",
+    title:"Small Team Circles Inside the Hub",
+    idea:"Split 14 hub members into groups of 3–4. Each group proposes their own strategy and acts as a small company with a long-term business plan. Teams sit physically next to each other.",
+    contribution:"Share ideas and be an active part of one circle.",
+    problem:"Lack of leadership inside the Hub leads to self-instructed teams — giving them a circle structure adds autonomy and accountability."
+  },
+  {
+    proposer:"Alireza.b", tag:"product", tagLabel:"Product",
+    title:"WordPress-Based Product",
+    idea:"Create a WordPress theme or plugin, sell it as a custom solution or on popular marketplaces like ThemeForest.",
+    contribution:"Can produce this product quickly with AI assistance.",
+    problem:"WordPress role in the company has low ROI. A marketable product could become a steady income source."
+  },
+  {
+    proposer:"Alireza.b", tag:"ai", tagLabel:"AI & Tools",
+    title:"Applying AI to the Product Manufacturing Process",
+    idea:"Use AI across the full product development lifecycle. Hackathon experience proved a quality product can be built in very short time — even with zero coding. Applicable to custom products and internal tools.",
+    contribution:"Product architecture, initial AI prototype, full build with React + Node.js.",
+    problem:"Alignment with the future, speed in production, reduced human error, better architecture, and freeing developers for higher-value tasks."
+  },
+  {
+    proposer:"Parya", tag:"ai", tagLabel:"AI & Tools",
+    title:"Shared AI Agent for Projects",
+    idea:"Train a shared AI agent per project, accessible to all team members. All chats routed to one central channel as a single source of truth instead of each person using separate instances.",
+    contribution:"Test it, train on complex test cases, and evaluate result quality.",
+    problem:"Fragmented AI usage across the team — covers test case writing, meeting summaries, debugging, documentation, onboarding, and project management."
+  },
+  {
+    proposer:"Taha Safari", tag:"team", tagLabel:"Team Structure",
+    title:"Dedicated Product Group",
+    idea:"Create a separate product team with a leader that bridges business and tech. Product is a distinct discipline — not currently treated that way.",
+    contribution:"Can lead, facilitate, or be an active member. Has done all roles before.",
+    problem:"Priorities invisible across the company. A product group pairs people with ROIs and brings business value into daily work."
+  },
+  {
+    proposer:"Taha Safari", tag:"team", tagLabel:"Team Structure",
+    title:"Spotify Model Inside the Hub",
+    idea:"Build a small Spotify-model structure inside the Hub — teams aligned around a product/project value with autonomy over their specialization, paired with a RACI model for clarity.",
+    contribution:"Has experience leading this kind of structural transition.",
+    problem:"No clear flows or shared responsibility. Spotify model clarifies ownership, shares accountability, and aligns everyone around visible outcomes."
+  },
+  {
+    proposer:"Nayyer", tag:"ai", tagLabel:"AI & Tools",
+    title:"AI-Driven Product Development Flow Team",
+    idea:"A dedicated team to explore and implement AI-based approaches — designing a unified, scalable product development flow from design through frontend and backend, avoiding legacy practices.",
+    contribution:"Review generated code and workflows, verify end-to-end flow, ensure AI integration meets scalability and quality standards.",
+    problem:"Development processes are fragmented and rely on legacy practices. An AI-driven flow consolidates tooling, automates repetitive work, and ensures consistent quality."
+  },
+  {
+    proposer:"Nayyer", tag:"team", tagLabel:"Team Structure",
+    title:"Project Prioritization & Developer Capacity Planning",
+    idea:"Identify project priorities clearly and allocate developer work based on capacity and skill fit — optimizing across the full developer pool.",
+    contribution:"Can map developers to projects based on skills and past contributions, ensuring optimal task assignment.",
+    problem:"Tasks are assigned without clear priority or capacity visibility — leading to bottlenecks, inefficiency, and uneven workload distribution."
+  },
+  {
+    proposer:"Vahid Sarhhadi", tag:"team", tagLabel:"Team Structure",
+    title:"All Developers Become Full-Stack",
+    idea:"Every developer grows into full-stack capability. They can still specialize in one area but can contribute meaningfully across the full app.",
+    contribution:"Can play a pivotal role in driving this change.",
+    problem:"Reduces the busy/empty imbalance between developers and increases a healthy competitive environment."
+  },
+];
+
+const tagColors = { ai:'tag-ai', team:'tag-team', product:'tag-product', process:'tag-process' };
+
+function renderIdeas(filter='all') {
+  const filtered = filter === 'all' ? hubIdeas : hubIdeas.filter(d => d.tag === filter);
+  document.getElementById('ideas-grid').innerHTML = filtered.map(d => `
+    <div class="idea-card" data-tag="${d.tag}">
+      <div class="idea-card-top">
+        <div class="idea-title">${d.title}</div>
+        <span class="idea-tag ${tagColors[d.tag]}">${d.tagLabel}</span>
+      </div>
+      <div class="idea-proposer">💬 ${d.proposer}</div>
+      <div class="idea-divider"></div>
+      <div class="idea-section">
+        <div class="idea-label">💡 Idea</div>
+        <div class="idea-text">${d.idea}</div>
+      </div>
+      <div class="idea-section">
+        <div class="idea-label">🤝 Contribution</div>
+        <div class="idea-text">${d.contribution}</div>
+      </div>
+      <div class="idea-section">
+        <div class="idea-label">🎯 Problem it solves</div>
+        <div class="idea-text">${d.problem}</div>
+      </div>
+    </div>`).join('');
+}
+
+function filterIdeas(tag, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderIdeas(tag);
+}
+
+renderIdeas();
+
+function switchTab(id, btn, cls) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('vis'));
+  document.getElementById('sec-'+id).classList.add('vis');
+  document.querySelectorAll('.tab').forEach(t=>t.className='tab');
+  btn.className='tab '+cls;
+}
+
+// Particles
+for(let i=0;i<20;i++){
+  const p=document.createElement('div'); p.className='particle';
+  const sz=(Math.random()*3+1.5)+'px';
+  Object.assign(p.style,{
+    left:Math.random()*100+'vw',
+    bottom:(Math.random()*5)+'vh',
+    width:sz, height:sz,
+    opacity:(Math.random()*0.3+0.05).toString(),
+    animationDuration:(Math.random()*14+8)+'s',
+    animationDelay:(Math.random()*10)+'s'
+  });
+  document.body.appendChild(p);
+}
+</script>
+</body>
+</html>
